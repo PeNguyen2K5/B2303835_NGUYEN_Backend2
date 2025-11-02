@@ -1,11 +1,33 @@
-// app/controllers/contact.controller.js
+const ApiError = require("../api-error");
+const ContactService = require("../services/contact.service");
+const MongoDB = require("../utils/mongodb.util");
 
-exports.create = (req, res) => {
-  res.send({ message: "create handler" });
+exports.create = async (req, res, next) => {
+  if (!req.body?.name) {
+    return next(new ApiError(400, "Name cannot be empty"));
+  }
+
+  try {
+    const contactService = new ContactService(MongoDB.client);
+    const document = await contactService.create(req.body);
+    return res.send(document);
+  } catch (err) {
+    return next(new ApiError(500, "An error occurred while creating the contact"));
+  }
 };
 
-exports.findAll = (req, res) => {
-  res.send({ message: "findAll handler" });
+exports.findAll = async (req, res, next) => {
+  let documents = [];
+  try {
+    const contactService = new ContactService(MongoDB.client);
+    const { name } = req.query;
+    documents = name
+      ? await contactService.findByName(name)
+      : await contactService.find({});
+    return res.send(documents);
+  } catch (err) {
+    return next(new ApiError(500, "An error occurred while retrieving contacts"));
+  }
 };
 
 exports.findOne = (req, res) => {
